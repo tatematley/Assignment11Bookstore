@@ -1,18 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Book } from './types/book'
+import { Book } from '../types/book'
+import { useNavigate} from 'react-router-dom';
+import { useCart } from '../context/CartContext';
+import { CartItem } from '../types/CartItem';
 
-export function BookList() {
+
+function BookList({selectedCategories}: { selectedCategories: string[]}) {
     const [books, setBooks] = useState<Book[]>([]);
     const [pageSize, setPageSize] = useState<number>(5);
     const [pageNumber, setPageNum] = useState<number>(1);
     const [totalBooks, setTotalBooks] = useState<number>(0);
     const [ascending, setAscending] = useState<boolean>(true); // default true 
-    
+    const navigate = useNavigate();
+    const {addToCart} = useCart();
 
     // Fetch all books by making multiple API calls if needed
     useEffect(() => {
         const fetchBooks = async () => {
-            const response = await fetch(`https://localhost:5000/Book?pageSize=${pageSize}&pageNumber=${pageNumber}&ascending=${ascending}`);
+            const categoryParams = selectedCategories
+                .map((cat) => `bookTypes=${encodeURIComponent(cat)}`)
+                .join('&');
+            
+            const response = await fetch(`https://localhost:5000/Book?pageSize=${pageSize}&pageNumber=${pageNumber}&ascending=${ascending}${selectedCategories.length ? `&${categoryParams}` : ''}`);
             const data = await response.json();
             
             setBooks(data.books);
@@ -20,7 +29,17 @@ export function BookList() {
         };  
 
         fetchBooks();
-    }, [pageSize, pageNumber, ascending]);
+    }, [pageSize, pageNumber, ascending, selectedCategories]);
+
+    const handleAddToCart = (book : Book) => {
+        const newItem: CartItem = {
+            bookID: book.bookID,
+            title: book.title, 
+            price: book.price,
+        };
+            addToCart(newItem);
+            navigate('/cart')
+        };
 
     const toggleSort = () => {
         setAscending(!ascending);
@@ -32,7 +51,6 @@ export function BookList() {
 
     return (
         <>
-            <h1>Book List</h1>
             <br />
             <button onClick={toggleSort}>
                 Sort by Title {ascending ? '(A-Z)' : '(Z-A)'}
@@ -69,6 +87,7 @@ export function BookList() {
                                 {b.price}
                             </li>
                         </ul>
+                        <button className="btn btn-success" onClick={() => handleAddToCart(b)}>Buy</button>
                     </div>
                 </div>
             ))}
@@ -101,3 +120,4 @@ export function BookList() {
         </>
     );
     }
+    export default BookList;

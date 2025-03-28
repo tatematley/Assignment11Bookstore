@@ -1,0 +1,32 @@
+.category-filter {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    font-family: Arial, sans-serif;
+}
+
+.category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.category-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.category-checkbox {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #000; /* Outline the box with a black border */
+    background-color: transparent; /* No fill color */
+    appearance: none; /* Remove default checkbox styling */
+    position: relative;
+}
+
+.category-checkbox:checked {
+    background-color: #b2adad; /* Fill color when checked (optional) */
+}
