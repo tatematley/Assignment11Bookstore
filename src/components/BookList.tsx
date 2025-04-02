@@ -3,39 +3,55 @@ import { Book } from '../types/book'
 import { useNavigate} from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { CartItem } from '../types/CartItem';
+import { fetchBooks } from '../api/BookApi';
+import Pagination from './paginationProps';
 
 
 function BookList({selectedCategories}: { selectedCategories: string[]}) {
     const [books, setBooks] = useState<Book[]>([]);
     const [pageSize, setPageSize] = useState<number>(5);
     const [pageNumber, setPageNum] = useState<number>(1);
-    const [totalBooks, setTotalBooks] = useState<number>(0);
+    const [totalPages, setTotalPages] = useState<number>(0);
     const [ascending, setAscending] = useState<boolean>(true); // default true 
     const navigate = useNavigate();
     const {addToCart} = useCart();
+    const [error,setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     // Fetch all books by making multiple API calls if needed
     useEffect(() => {
-        const fetchBooks = async () => {
-            const categoryParams = selectedCategories
-                .map((cat) => `bookTypes=${encodeURIComponent(cat)}`)
-                .join('&');
+        const loadBooks = async () => {
+            // const categoryParams = selectedCategories
+            //     .map((cat) => `bookTypes=${encodeURIComponent(cat)}`)
+            //     .join('&');
             
-            const response = await fetch(`https://localhost:5000/Book?pageSize=${pageSize}&pageNumber=${pageNumber}&ascending=${ascending}${selectedCategories.length ? `&${categoryParams}` : ''}`);
-            const data = await response.json();
-            
-            setBooks(data.books);
-            setTotalBooks(data.totalNumBooks);
+            //const response = await fetch(`https://localhost:5000/Book?pageSize=${pageSize}&pageNumber=${pageNumber}&ascending=${ascending}${selectedCategories.length ? `&${categoryParams}` : ''}`);
+
+            try {
+                setLoading(true);
+                const data = await fetchBooks(pageSize, pageNumber, ascending, selectedCategories)
+
+                setBooks(data.books);
+                setTotalPages(Math.ceil(data.totalNumBooks / pageSize));
+            } catch (error) {
+                setError((error as Error).message);
+            } finally {
+                setLoading(false);
+            }
         };  
 
-        fetchBooks();
+        loadBooks();
     }, [pageSize, pageNumber, ascending, selectedCategories]);
+
+    if (loading) return <p> Loading Books... </p>
+    if (error) return <p className='text-red-500'>Error: {error}</p>;
 
     const handleAddToCart = (book : Book) => {
         const newItem: CartItem = {
             bookID: book.bookID,
-            title: book.title, 
+            title: book.title,
             price: book.price,
+            quantity: 1
         };
             addToCart(newItem);
             navigate('/cart')
@@ -44,10 +60,7 @@ function BookList({selectedCategories}: { selectedCategories: string[]}) {
     const toggleSort = () => {
         setAscending(!ascending);
         setPageNum(1);
-    };
-
-
-    const totalPages = Math.ceil(totalBooks / pageSize);
+    }
 
     return (
         <>
@@ -100,24 +113,17 @@ function BookList({selectedCategories}: { selectedCategories: string[]}) {
                     {i + 1}
                 </button>
             ))}
-
-            <button disabled={pageNumber === totalPages} onClick={() => setPageNum(pageNumber + 1)}>Next</button>
-            
-            <br />
-            <label>
-                Results per page: 
-                <select 
-                    value={pageSize} 
-                    onChange={(e) => {
-                        setPageSize(Number(e.target.value));
-                        setPageNum(1);
-                    }} >
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                </select>
-            </label>
-        </>
-    );
+                <Pagination 
+                    currentPage={pageNumber}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    onPageChange={setPageNum}
+                    onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setPageNum(1);
+                    }}
+                /> 
+            </>
+        );
     }
     export default BookList;
